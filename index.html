@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <title>SQL Journey — เรียนรู้และฝึกฝน SQL แบบ Interactive</title>
+  <meta name="description" content="เรียนรู้และฝึกฝนการเขียนคำสั่ง SQL แบบลงมือทำจริงบนเบราว์เซอร์ ด้วย SQLite WASM ครอบคลุมตั้งแต่พื้นฐานจนถึงการวิเคราะห์ขั้นสูง" />
+  
+  <!-- CSS Stylesheet -->
+  <!-- CodeMirror (self-hosted 5.65.16 จาก cdnjs) — SQL syntax highlight และ autocomplete -->
+  <link rel="stylesheet" href="vendor/codemirror/codemirror.min.css" />
+  <link rel="stylesheet" href="vendor/codemirror/show-hint.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <div class="app">
+    <!-- Topbar Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">SQL</div>
+        <div class="brand-info">
+          <h1>
+            SQL Journey
+            <span class="brand-badge">Interactive 1.1</span>
+          </h1>
+          <p>เรียนรู้ SQL ด้วยระบบฐานข้อมูลจำลอง E-Commerce บนเบราว์เซอร์</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <!-- Progress Indicator -->
+        <div class="progress-pill" id="progressPill">
+          ความคืบหน้า 0/31 บท (0%)
+        </div>
+
+        <!-- Database Ready Status -->
+        <div class="status">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">กำลังเตรียมฐานข้อมูล SQLite...</span>
+        </div>
+
+        <!-- Theme Toggle (Light / Dark) -->
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="สลับโหมดสว่าง / โหมดมืด">
+          🌙
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Layout Grid -->
+    <div class="layout">
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title-row">
+            <p class="sidebar-title">เส้นทางการเรียนรู้</p>
+            <span class="progress-pct" id="progressPct">0%</span>
+          </div>
+
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+          </div>
+
+          <!-- Category Filter Chips -->
+          <nav class="category-filter" id="categoryFilter"></nav>
+
+          <!-- Lesson Search Input -->
+          <div class="sidebar-search-box">
+            <span class="sidebar-search-icon">🔍</span>
+            <input 
+              type="text" 
+              class="sidebar-search-input" 
+              id="lessonSearchInput" 
+              placeholder="ค้นหาบทเรียน หรือ คำสั่ง SQL..." 
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <!-- Lesson List Buttons -->
+        <nav class="lesson-list" id="lessonList"></nav>
+
+        <!-- Sidebar Footer Actions -->
+        <div class="sidebar-footer">
+          <button class="btn-schema" id="schemaModalBtn">
+            <span>🗄️</span> โครงสร้างตาราง (Schema Explorer)
+          </button>
+          <button class="btn-schema" id="joinModalBtn">
+            <span>🔗</span> JOIN Visualizer — เห็นภาพ JOIN
+          </button>
+          <button class="btn-schema" id="perfModalBtn">
+            <span>⚡</span> Performance Lab — สัมผัส Index
+          </button>
+          <button class="btn-schema" id="injectionModalBtn">
+            <span>🔐</span> Injection Lab — เข้าใจเพื่อป้องกัน
+          </button>
+          <a class="btn-schema" href="shopnova/index.html">
+            <span>🛍️</span> ShopNova Thailand — ร้านค้าจริงจากฐานข้อมูลนี้
+          </a>
+        </div>
+      </aside>
+
+      <!-- Main Learning & Practice Area -->
+      <main class="main">
+        <!-- Hero Welcome Banner -->
+        <section class="hero card">
+          <p class="eyebrow">Interactive SQL Playground</p>
+          <h2>เรียน SQL ตั้งแต่คำสั่งแรก จนถึงการวิเคราะห์ข้อมูลระดับ Advanced</h2>
+          <p>
+            ทดลองเขียนคำสั่ง SQL กับฐานข้อมูลร้านค้าออนไลน์จริง (ShopNova Thailand)
+            ครอบคลุมทั้งการสืบค้นข้อมูล, การรวมตาราง (JOINs), การสรุปยอดขาย (GROUP BY) ตลอดจน CTE และ Window Functions
+          </p>
+          <div class="stats">
+            <span class="stat"><span class="stat-icon">⚡</span> SQLite 3 Engine (WASM)</span>
+            <span class="stat"><span class="stat-icon">💾</span> บันทึกความคืบหน้าอัตโนมัติ</span>
+            <span class="stat"><span class="stat-icon">🎯</span> <span id="lessonCountStat">54 บทเรียนพร้อมแบบฝึกหัด</span></span>
+            <span class="stat"><span class="stat-icon">🌐</span> ทำงานในเบราว์เซอร์ 100%</span>
+          </div>
+        </section>
+
+        <!-- Lesson Info & SQL Editor Row -->
+        <section class="lesson-content">
+          <!-- Lesson Explanation Card -->
+          <article class="card lesson-info-card">
+            <div class="lesson-header-row">
+              <span class="lesson-badge" id="lessonLevel">บทที่ 1 · เริ่มต้น</span>
+            </div>
+
+            <h3 id="lessonTitle">กำลังโหลดบทเรียน...</h3>
+            
+            <div class="description" id="lessonDescription"></div>
+            
+            <div class="tip" id="lessonTip"></div>
+
+            <!-- Challenge / Exercise Section -->
+            <div class="challenge-box" id="challengeBox"></div>
+
+            <!-- Lesson Navigation Buttons -->
+            <div class="lesson-nav-buttons">
+              <button class="btn-nav" id="prevLessonBtn">
+                <span>←</span> บทก่อนหน้า
+              </button>
+              <button class="btn-nav" id="nextLessonBtn">
+                บทถัดไป <span>→</span>
+              </button>
+            </div>
+          </article>
+
+          <!-- Interactive SQL Editor & Result Card -->
+          <article class="card editor-card">
+            <div class="editor-head">
+              <div class="editor-title">
+                <span>💻</span>
+                <strong>SQL Editor</strong>
+              </div>
+              <div class="editor-actions">
+                <button class="btn btn-secondary" id="formatSqlBtn" title="จัดรูปแบบคีย์เวิร์ดตัวพิมพ์ใหญ่">จัดรูปแบบ</button>
+                <button class="btn btn-secondary" id="copySqlBtn" title="คัดลอกโค้ด SQL">คัดลอก</button>
+                <button class="btn btn-secondary" id="loadExampleBtn" title="คืนค่าเป็นตัวอย่างของบทเรียนนี้">โหลดตัวอย่าง</button>
+                <button class="btn btn-danger" id="resetBtn" title="รีเซ็ตฐานข้อมูลเป็นค่าเริ่มต้น">รีเซ็ต DB</button>
+                <button class="btn btn-run" id="runBtn" title="รันคำสั่ง SQL (Ctrl + Enter)">▶ รัน SQL</button>
+              </div>
+            </div>
+
+            <div class="editor-wrapper">
+              <textarea id="sqlEditor" spellcheck="false" placeholder="เขียนคำสั่ง SQL ที่นี่..."></textarea>
+              <div class="editor-shortcut-hint">Ctrl + Enter รัน SQL · Ctrl + Space เติมคำสั่ง / ชื่อตาราง</div>
+            </div>
+
+            <div class="result-area">
+              <div id="result">
+                <div class="message">เลือกบทเรียน แล้วกด “▶ รัน SQL” เพื่อเริ่มต้นดูผลลัพธ์</div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- Quick Reference SQL Cheat Sheet -->
+        <section class="card">
+          <p class="eyebrow">Cheat Sheet</p>
+          <h3 style="margin: 0;">คำสั่ง SQL สำคัญที่พบบ่อย</h3>
+          <div class="reference-grid">
+            <div class="reference-item">
+              <code>SELECT ... FROM</code>
+              <p>เลือกคอลัมน์และอ่านข้อมูลจากตารางที่ระบุ</p>
+            </div>
+            <div class="reference-item">
+              <code>WHERE &amp; LIKE</code>
+              <p>กรองข้อมูลตามเงื่อนไขทางตรรกะและค้นหาคำด้วย Wildcard (%)</p>
+            </div>
+            <div class="reference-item">
+              <code>INNER / LEFT JOIN</code>
+              <p>เชื่อมความสัมพันธ์และรวมข้อมูลจากหลายตาราง</p>
+            </div>
+            <div class="reference-item">
+              <code>GROUP BY &amp; HAVING</code>
+              <p>จัดกลุ่มข้อมูลและกรองผลลัพธ์หลังคำนวณ Aggregate</p>
+            </div>
+            <div class="reference-item">
+              <code>INSERT / UPDATE / DELETE</code>
+              <p>เพิ่ม แก้ไข และลบข้อมูลออกจากตาราง (DML)</p>
+            </div>
+            <div class="reference-item">
+              <code>CASE WHEN ... END</code>
+              <p>เขียนเงื่อนไข If-Else เพื่อจำแนกประเภทข้อมูล</p>
+            </div>
+            <div class="reference-item">
+              <code>WITH cte AS (...)</code>
+              <p>สร้างตารางเสมือนชั่วคราวเพื่อแบ่ง Query ซับซ้อน</p>
+            </div>
+            <div class="reference-item">
+              <code>OVER (PARTITION BY ...)</code>
+              <p>คำนวณ Window Function เช่น จัดอันดับ (RANK) หรือหายอดสะสม</p>
+            </div>
+            <div class="reference-item">
+              <code>BEGIN / COMMIT / ROLLBACK</code>
+              <p>ห่อหุ้มการเปลี่ยนแปลงเป็น Transaction เดียว ยกเลิกได้ทั้งชุด</p>
+            </div>
+            <div class="reference-item">
+              <code>UNION / UNION ALL</code>
+              <p>รวมผลลัพธ์จากหลาย Query เป็นชุดเดียว (ตัดซ้ำ / คงซ้ำ)</p>
+            </div>
+            <div class="reference-item">
+              <code>CREATE VIEW / INDEX</code>
+              <p>สร้างมุมมองข้อมูลใช้ซ้ำได้ และ Index เพื่อเร่งความเร็วการค้นหา</p>
+            </div>
+            <div class="reference-item">
+              <code>? Parameters (bind)</code>
+              <p>ผูกค่าเข้าคำสั่งแบบแยกส่วน — ทางออกมาตรฐานป้องกัน SQL Injection</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Schema Explorer Modal -->
+  <div class="modal-backdrop" id="schemaModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><span>🗄️</span> โครงสร้างฐานข้อมูล (Database Schema Explorer)</h3>
+        <button class="btn-close-modal" id="closeSchemaModalBtn" title="ปิดหน้าต่าง">✕</button>
+      </div>
+      <div class="modal-body" id="schemaModalBody"></div>
+    </div>
+  </div>
+
+  <!-- JOIN Visualizer Modal -->
+  <div class="modal-backdrop" id="joinModal">
+    <div class="modal-content modal-join">
+      <div class="modal-header">
+        <h3><span>🔗</span> JOIN Visualizer — เห็นภาพการเชื่อมตาราง</h3>
+        <button class="btn-close-modal" id="closeJoinModalBtn" title="ปิดหน้าต่าง">✕</button>
+      </div>
+      <div class="modal-body" id="joinModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Performance Lab Modal -->
+  <div class="modal-backdrop" id="perfModal">
+    <div class="modal-content modal-lab">
+      <div class="modal-header">
+        <h3><span>⚡</span> Performance Lab — สัมผัสความเร็วของ Index</h3>
+        <button class="btn-close-modal" id="closePerfModalBtn" title="ปิดหน้าต่าง">✕</button>
+      </div>
+      <div class="modal-body" id="perfModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Injection Lab Modal -->
+  <div class="modal-backdrop" id="injectionModal">
+    <div class="modal-content modal-lab">
+      <div class="modal-header">
+        <h3><span>🔐</span> Injection Lab — ระบบ Login จำลอง (เรียนรู้เพื่อป้องกัน)</h3>
+        <button class="btn-close-modal" id="closeInjectionModalBtn" title="ปิดหน้าต่าง">✕</button>
+      </div>
+      <div class="modal-body" id="injectionModalBody"></div>
+    </div>
+  </div>
+
+  <!-- SQLite WASM Library (self-hosted, verified against sql.js 1.10.3 on npm) -->
+  <script src="vendor/sql-wasm.js"></script>
+
+  <!-- CodeMirror (self-hosted 5.65.16) -->
+  <script src="vendor/codemirror/codemirror.min.js"></script>
+  <script src="vendor/codemirror/sql.min.js"></script>
+  <script src="vendor/codemirror/show-hint.min.js"></script>
+  <script src="vendor/codemirror/sql-hint.min.js"></script>
+
+  <!-- Modular Application Scripts -->
+  <script src="js/schema.js"></script>
+  <script src="js/lessons.js"></script>
+  <script src="js/challenge.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
